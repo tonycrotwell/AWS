@@ -1,0 +1,21 @@
+import boto3
+from datetime import timedelta, datetime
+ 
+ 
+def lambda_handler(event, context):
+    # if older than days delete
+    days = 10
+ 
+    filters = [{'Name': 'tag:Name', 'Values': ['Auto_Snapshots']}]
+ 
+    ec2 = boto3.setup_default_session(region_name='us-east-1')
+    client = boto3.client('ec2')
+    snapshots = client.describe_snapshots(Filters=filters)
+ 
+    for snapshot in snapshots["Snapshots"]:
+        start_time = snapshot["StartTime"]
+        delete_time = datetime.now(start_time.tzinfo) - timedelta(days=days)
+ 
+        if start_time < delete_time:
+            print 'Deleting {id}'.format(id=snapshot["SnapshotId"])
+            client.delete_snapshot(SnapshotId=snapshot["SnapshotId"], DryRun=False)
