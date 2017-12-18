@@ -1,0 +1,26 @@
+import boto3
+ec = boto3.client('ec2')
+ 
+def lambda_handler(event, context):
+    reservations = ec.describe_instances(
+        Filters=[
+            {'Name': 'tag-key', 'Values': ['priority', 'Priority']},
+            {'Name': 'tag-value', 'Values': ['0']},
+        ]
+    ).get(
+        'Reservations', []
+    )
+ 
+    # Flatten the list of all instances from all reservations into one list
+    instances = sum(
+        [
+            [i for i in r['Instances']]
+            for r in reservations
+        ], [])
+ 
+    print "Found %d instances to be started up at 0600 EST" % len(instances)
+ 
+    # get all the instance IDs from the list of instances
+    instance_ids = [ins['InstanceId'] for ins in instances]
+ 
+    response = ec.start_instances(InstanceIds=instance_ids)
